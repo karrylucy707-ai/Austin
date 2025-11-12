@@ -30,7 +30,7 @@ services:
     networks:
       - app
   austin-zookeeper:
-    image: wurstmeister/zookeeper
+    image: zookeeper:3.8.4
     container_name: austin-zookeeper
     volumes:
       - "/etc/localtime:/etc/localtime"
