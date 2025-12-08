@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS `config_info`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='config_info';
 
+USE `nacos_config`;
 CREATE TABLE IF NOT EXISTS `config_info_aggr`
 (
     `id`           BIGINT(20)   NOT NULL AUTO_INCREMENT COMMENT 'id',
@@ -39,9 +40,10 @@ CREATE TABLE IF NOT EXISTS `config_info_aggr`
     `app_name`     VARCHAR(128) DEFAULT NULL,
     `tenant_id`    VARCHAR(128) DEFAULT '' COMMENT '租户字段',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_configinfoaggr_datagrouptenantdatum` (`data_id`, `group_id`, `tenant_id`, `datum_id`)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4 COMMENT ='增加租户字段';
+    UNIQUE KEY `uk_configinfoaggr_datagrouptenantdatum`
+        (`data_id`(191), `group_id`(191), `tenant_id`(64), `datum_id`(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='增加租户字段';
+
 
 CREATE TABLE IF NOT EXISTS `config_info_beta`
 (
