@@ -53,6 +53,7 @@ public class PipelineConfig {
     @Bean("commonSendTemplate")
     public ProcessTemplate commonSendTemplate() {
         ProcessTemplate processTemplate = new ProcessTemplate();
+        //要执行的方法封装进入processlist
         processTemplate.setProcessList(Arrays.asList(sendPreCheckAction, sendAssembleAction,
                 sendAfterCheckAction, sendMqAction));
         return processTemplate;

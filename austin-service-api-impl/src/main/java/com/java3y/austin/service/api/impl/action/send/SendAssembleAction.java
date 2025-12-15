@@ -84,6 +84,13 @@ public class SendAssembleAction implements BusinessProcess<SendTaskModel> {
         Long messageTemplateId = sendTaskModel.getMessageTemplateId();
 
         try {
+            //Optional是java8引入的容器类，可以存null，避免findById返回null赋值给MessageTemplate对象出现空指针异常
+            /* 执行流程：
+            1. `findById()` 返回 `Optional<MessageTemplate>`
+            2. 如果 `!messageTemplate.isPresent()` 为 true，说明未找到
+            3. 或者模板被删除（`getIsDeleted().equals(CommonConstant.TRUE)`）
+            4. 满足任一条件则中断并返回错误
+            5. 否则使用 `messageTemplate.get()` 获取对象继续处理*/
             Optional<MessageTemplate> messageTemplate = messageTemplateDao.findById(messageTemplateId);
             if (!messageTemplate.isPresent() || messageTemplate.get().getIsDeleted().equals(CommonConstant.TRUE)) {
                 context.setNeedBreak(true).setResponse(BasicResultVO.fail(RespStatusEnum.TEMPLATE_NOT_FOUND));

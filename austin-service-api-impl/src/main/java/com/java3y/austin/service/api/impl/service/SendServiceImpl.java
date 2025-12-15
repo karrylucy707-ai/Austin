@@ -34,21 +34,22 @@ public class SendServiceImpl implements SendService {
     @Override
     @OperationLog(bizType = "SendService#send", bizId = "#sendRequest.messageTemplateId", msg = "#sendRequest")
     public SendResponse send(SendRequest sendRequest) {
+        //前端传的参数被封装到了sendRequest，对sendRequest进行非空判断
         if (ObjectUtils.isEmpty(sendRequest)) {
             return new SendResponse(RespStatusEnum.CLIENT_BAD_PARAMETERS.getCode(), RespStatusEnum.CLIENT_BAD_PARAMETERS.getMsg(), null);
         }
-
+        //拿到sendRequest传来的数据封装到发送消息数据模板，SendTaskModel是ProsessModel责任链数据模型的实现类
         SendTaskModel sendTaskModel = SendTaskModel.builder()
                 .messageTemplateId(sendRequest.getMessageTemplateId())
                 .messageParamList(Collections.singletonList(sendRequest.getMessageParam()))
                 .build();
-
+        //设置code，责任链数据模型，责任链中断标识，执行成功返回值构造责任链上下文数据模型
         ProcessContext context = ProcessContext.builder()
                 .code(sendRequest.getCode())
                 .processModel(sendTaskModel)
                 .needBreak(false)
                 .response(BasicResultVO.success()).build();
-
+        //传入责任链上下文模型，构造责任链
         ProcessContext process = processController.process(context);
 
         return new SendResponse(process.getResponse().getStatus(), process.getResponse().getMsg(), (List<SimpleTaskInfo>) process.getResponse().getData());
