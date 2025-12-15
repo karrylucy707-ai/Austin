@@ -47,6 +47,7 @@ public class SendMqAction implements BusinessProcess<SendTaskModel> {
         SendTaskModel sendTaskModel = context.getProcessModel();
         List<TaskInfo> taskInfo = sendTaskModel.getTaskInfo();
         try {
+            //这行代码使用 Fastjson 库将 Java 对象转换为 JSON 字符串，并启用特殊功能来保留类型信息。
             String message = JSON.toJSONString(sendTaskModel.getTaskInfo(), JSONWriter.Feature.WriteClassName);
             sendMqService.send(sendMessageTopic, message, tagId);
 
