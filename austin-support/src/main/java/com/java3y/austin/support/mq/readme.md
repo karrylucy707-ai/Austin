@@ -161,3 +161,71 @@ austin.business.log.topic.name=austinTraceLog
 - Redis/RabbitMQ/EventBus：基本不使用或仅用于日志
 
 这样可以在同一个 topic 中实现消息的分类和选择性消费。
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+也就是说，项目中启用哪个队列是和配置有关，实现了SendServiceImp的接口类都被@ConditionalOnProperty注解修饰，只有指定name和value与properties里配置的属性相同时才会被实例化放入容器，当Spring扫描到@ConditionalOnProperty修饰的类时会去扫描properties文件，只有配置文件中指定的属性值与注解中指定的值相等时，该类才会被实例化。
+项目中确实通过 **配置驱动 + 条件注解** 的方式来决定启用哪个消息队列实现，具体机制如下：
+
+#### 1. @ConditionalOnProperty 注解的工作原理
+
+`@ConditionalOnProperty` 是 Spring Boot 提供的条件注解，用于根据配置文件中的属性值来决定是否实例化某个 Bean：
+
+```java
+@ConditionalOnProperty(name = "austin.mq.pipeline", havingValue = MessageQueuePipeline.REDIS)
+```
+- **name**：指定配置文件中的属性名
+- **havingValue**：指定该属性需要匹配的值
+- 只有当配置文件中 `austin.mq.pipeline` 的值等于 `redis` 时，该类才会被实例化
+
+#### 3. Spring 容器的实例化过程
+
+1. **项目启动**：Spring Boot 应用启动
+2. **配置加载**：加载 `application.properties` 等配置文件
+3. **组件扫描**：扫描所有带有 `@Service` 等注解的类
+4. **条件判断**：对带有 `@ConditionalOnProperty` 注解的类进行条件判断
+5. **实例化**：只有满足条件的类才会被实例化并放入 Spring 容器
+6. **依赖注入**：当其他组件需要注入 `SendMqService` 时，Spring 会从容器中找到唯一的实现类并注入
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+这个项目采用"一个topic对应多个消费者组"的设计模式，主要基于以下几个核心原因和优势：
+
+### 一、核心设计原理
+1. **topic设计**：所有渠道的消息都发送到同一个topic（`austinBusiness`），topic按业务类型（发送/撤回）区分，而非按渠道区分。
+
+2. **消费者组生成规则**：每个消费者组ID由"渠道类型+消息类型"组合生成，格式为`channelType.codeEn.messageType.codeEn`（如`sms.notice`、`push.marketing`）。
+
+3. **消息路由机制**：
+    - 生产者发送消息时，将渠道信息存储在`TaskInfo.sendChannel`字段中
+    - 消费者组通过`GroupIdMappingUtils`计算消息对应的groupId
+    - 只有当消费者组ID与消息的groupId完全匹配时，才会处理该消息
+
+### 二、这种设计的核心优势
+1. **解耦设计**：
+    - 生产者无需关心具体渠道，只需将消息发送到统一topic
+    - 渠道逻辑与消息生产逻辑完全分离
+
+2. **灵活扩展**：
+    - 新增渠道只需添加`ChannelType`枚举
+    - 新增消息类型只需添加`MessageType`枚举
+    - 系统自动为新组合生成消费者组，无需修改核心逻辑
+
+3. **资源隔离**：
+    - 不同渠道/消息类型拥有独立的消费者组
+    - 某一渠道的异常不会影响其他渠道的消息处理
+    - 可针对不同渠道/消息类型独立配置消费线程数和重试策略
+
+4. **高效过滤**：
+    - 利用Kafka的消费者组机制实现消息过滤，避免在应用层进行大量过滤操作
+    - 只有匹配的消费者组才会收到消息，减少网络传输和CPU消耗
+
+5. **统一管理**：
+    - 所有消息在同一topic便于监控和管理
+    - 可统一配置消息的持久化策略和过期时间
+
+### 三、实现细节
+- 通过`KafkaListenerAnnotationBeanPostProcessor`动态为每个消费者组设置groupId
+- 为每个渠道-消息类型组合创建独立的`Receiver`实例
+- 使用`GroupIdMappingUtils`工具类管理渠道、消息类型与消费者组的映射关系
+- 支持Kafka、Redis等多种消息队列实现，通过配置可切换

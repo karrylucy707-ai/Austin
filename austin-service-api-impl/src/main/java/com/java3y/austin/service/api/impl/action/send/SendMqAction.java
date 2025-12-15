@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 @Service
 public class SendMqAction implements BusinessProcess<SendTaskModel> {
 
-
     @Autowired
     private SendMqService sendMqService;
 
