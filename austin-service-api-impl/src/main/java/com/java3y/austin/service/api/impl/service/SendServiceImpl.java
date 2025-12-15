@@ -30,7 +30,17 @@ public class SendServiceImpl implements SendService {
     @Autowired
     @Qualifier("apiProcessController")
     private ProcessController processController;
-
+//为什么将send和batchsend两个逻辑类似的方法分开来写？
+    /*
+    两个方法代码不同点：
+        接受的参数类型不同，sendRequest用来存储消息的是类对象
+        而batchSend的BatchSendRequest是List
+        然后用封装成相同的数据模型，SendTaskModel，但是需要先进性同一化操作，将send的单个消息也收集成List
+    这样写优点：
+        符合单一职责原则
+        提高了代码的可扩展性
+        接口功能清晰明确
+    * */
     @Override
     @OperationLog(bizType = "SendService#send", bizId = "#sendRequest.messageTemplateId", msg = "#sendRequest")
     public SendResponse send(SendRequest sendRequest) {
