@@ -21,6 +21,9 @@ public class GroupIdMappingUtils {
     /**
      * 获取所有的groupIds
      * (不同的渠道不同的消息类型拥有自己的groupId)
+     * 从常量类拿到groupid列表
+     * 遍历列表拿到渠道id和消息类型id
+     * 拼接成groupId
      */
     public static List<String> getAllGroupIds() {
         List<String> groupIds = new ArrayList<>();
